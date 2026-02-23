@@ -10,9 +10,9 @@ import { PaymentProviderType } from '../types';
 
 export const GlobalPurchaseSchema = z.object({
   paymentMethod: z.literal(PaymentProviderType.PAYPAL),
-  customerName: z.string().min(1, 'Name is required.'),
-  customerEmail: z.string().email('Please enter a valid email.'),
-  amount: z.number().positive('Amount must be greater than 0.'),
+  customerName: z.string().min(1, 'validation.nameRequired'),
+  customerEmail: z.string().email('validation.invalidEmailEn'),
+  amount: z.number().positive('validation.amountPositiveEn'),
   currency: z.enum(['USD', 'EUR']),
 });
 

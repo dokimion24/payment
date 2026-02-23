@@ -1,17 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 
 import { PayPalCheckoutParamsSchema } from "@/lib/payment/schemas";
 import { ValidationErrorPage } from "@/lib/payment/components/ValidationErrorPage";
+import { I18nProvider } from "@/lib/i18n";
 
 const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!;
 
-export default function PayPalCheckoutPage() {
+function PayPalCheckoutContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const t = useTranslations();
 
   // Zod로 쿼리 파라미터 검증
   const parsed = PayPalCheckoutParamsSchema.safeParse({
@@ -32,10 +35,10 @@ export default function PayPalCheckoutPage() {
   if (!parsed.success) {
     return (
       <ValidationErrorPage
-        title="Invalid Payment Request"
-        description="The payment parameters are invalid."
+        title={t("paypalCheckout.invalidRequest")}
+        description={t("paypalCheckout.invalidParams")}
         errors={parsed.error.issues}
-        backLabel="Back to Home"
+        backLabel={t("paypalCheckout.backToHome")}
       />
     );
   }
@@ -57,7 +60,7 @@ export default function PayPalCheckoutPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-lg font-bold">Checkout</h1>
+          <h1 className="text-lg font-bold">{t("paypalCheckout.title")}</h1>
         </div>
       </header>
 
@@ -70,15 +73,15 @@ export default function PayPalCheckoutPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold mb-1">Payment Successful</h2>
-            <p className="text-gray-500 text-sm mb-4">Thank you for your purchase!</p>
+            <h2 className="text-xl font-bold mb-1">{t("paypalCheckout.paymentSuccessful")}</h2>
+            <p className="text-gray-500 text-sm mb-4">{t("paypalCheckout.thankYou")}</p>
             <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-2 mb-6 text-left">
               <div className="flex justify-between">
-                <span className="text-gray-500">Transaction</span>
+                <span className="text-gray-500">{t("paypalCheckout.transaction")}</span>
                 <span className="font-mono text-xs">{txId}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Amount</span>
+                <span className="text-gray-500">{t("paypalCheckout.amount")}</span>
                 <span className="font-bold">{currencySymbol}{amountStr}</span>
               </div>
             </div>
@@ -86,46 +89,46 @@ export default function PayPalCheckoutPage() {
               onClick={() => router.push("/")}
               className="bg-gray-900 text-white rounded-xl px-8 py-3 font-medium hover:bg-gray-800"
             >
-              Continue Shopping
+              {t("paypalCheckout.continueShopping")}
             </button>
           </div>
         ) : (
           <>
             {/* 주문 요약 */}
             <div className="bg-white rounded-xl border p-5">
-              <h2 className="font-bold text-sm mb-3">Order Summary</h2>
+              <h2 className="font-bold text-sm mb-3">{t("paypalCheckout.orderSummary")}</h2>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-700">{orderName}</span>
                 <span className="text-sm font-bold">{currencySymbol}{amountStr}</span>
               </div>
               <div className="border-t mt-3 pt-3 flex justify-between">
-                <span className="font-bold text-sm">Total</span>
+                <span className="font-bold text-sm">{t("paypalCheckout.total")}</span>
                 <span className="font-bold text-blue-600">{currencySymbol}{amountStr}</span>
               </div>
             </div>
 
             {/* 고객 정보 */}
             <div className="bg-white rounded-xl border p-5">
-              <h2 className="font-bold text-sm mb-4">Contact Information</h2>
+              <h2 className="font-bold text-sm mb-4">{t("paypalCheckout.contactInfo")}</h2>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Full Name</label>
+                  <label className="block text-xs text-gray-500 mb-1">{t("paypalCheckout.fullName")}</label>
                   <input
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="John Doe"
+                    placeholder={t("paypalCheckout.fullNamePlaceholder")}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Email</label>
+                  <label className="block text-xs text-gray-500 mb-1">{t("paypalCheckout.email")}</label>
                   <input
                     type="email"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="email@example.com"
+                    placeholder={t("paypalCheckout.emailPlaceholder")}
                   />
                 </div>
               </div>
@@ -133,7 +136,7 @@ export default function PayPalCheckoutPage() {
 
             {/* PayPal 결제 */}
             <div className="bg-white rounded-xl border p-5">
-              <h2 className="font-bold text-sm mb-4">Payment</h2>
+              <h2 className="font-bold text-sm mb-4">{t("paypalCheckout.payment")}</h2>
 
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
@@ -182,11 +185,11 @@ export default function PayPalCheckoutPage() {
                         });
                       }
                     } catch {
-                      setError("Payment capture failed.");
+                      setError(t("paypalCheckout.captureFailed"));
                     }
                   }}
-                  onError={() => setError("PayPal encountered an error.")}
-                  onCancel={() => setError("Payment was cancelled.")}
+                  onError={() => setError(t("paypalCheckout.paypalError"))}
+                  onCancel={() => setError(t("paypalCheckout.paymentCancelled"))}
                 />
               </PayPalScriptProvider>
             </div>
@@ -194,5 +197,15 @@ export default function PayPalCheckoutPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function PayPalCheckoutPage() {
+  return (
+    <Suspense>
+      <I18nProvider country="US">
+        <PayPalCheckoutContent />
+      </I18nProvider>
+    </Suspense>
   );
 }

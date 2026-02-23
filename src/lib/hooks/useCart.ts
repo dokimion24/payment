@@ -47,15 +47,21 @@ export function useCart(country: CountryCode) {
 
   const currency = isKr ? 'KRW' : 'USD';
 
-  const formatPrice = (product: Product) =>
-    isKr
-      ? `${product.price.toLocaleString()}원`
-      : `$${product.priceUsd.toFixed(2)}`;
+  const formatPrice = (product: Product) => {
+    const value = isKr ? product.price : product.priceUsd;
+    return new Intl.NumberFormat(isKr ? 'ko-KR' : 'en-US', {
+      style: 'currency',
+      currency: isKr ? 'KRW' : 'USD',
+      minimumFractionDigits: isKr ? 0 : 2,
+    }).format(value);
+  };
 
   const formatTotal = () =>
-    isKr
-      ? `${totalAmount.toLocaleString()}원`
-      : `$${totalAmount.toFixed(2)}`;
+    new Intl.NumberFormat(isKr ? 'ko-KR' : 'en-US', {
+      style: 'currency',
+      currency: isKr ? 'KRW' : 'USD',
+      minimumFractionDigits: isKr ? 0 : 2,
+    }).format(totalAmount);
 
   return {
     cart,

@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 
 interface PaymentFormFieldsProps {
   customerName: string;
@@ -27,12 +28,12 @@ export function PaymentFormFields({
   onCustomerEmailChange,
   amount,
   onAmountChange,
-  nameLabel = 'Name',
-  emailLabel = 'Email',
-  amountLabel = 'Amount',
-  namePlaceholder = 'John Doe',
-  emailPlaceholder = 'email@example.com',
-  amountPlaceholder = '100',
+  nameLabel = "Name",
+  emailLabel = "Email",
+  amountLabel = "Amount",
+  namePlaceholder = "John Doe",
+  emailPlaceholder = "email@example.com",
+  amountPlaceholder = "100",
 }: PaymentFormFieldsProps) {
   return (
     <>
@@ -122,8 +123,10 @@ export function PaymentFormLayout({
   submitLabel,
   isLoading = false,
   disabled = false,
-  buttonClassName = 'w-full bg-blue-600 text-white rounded p-2 hover:bg-blue-700 disabled:opacity-50',
+  buttonClassName = "w-full bg-blue-600 text-white rounded p-2 hover:bg-blue-700 disabled:opacity-50",
 }: PaymentFormLayoutProps) {
+  const t = useTranslations("common");
+
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {children}
@@ -132,7 +135,7 @@ export function PaymentFormLayout({
         disabled={isLoading || disabled}
         className={buttonClassName}
       >
-        {isLoading ? '처리중...' : submitLabel}
+        {isLoading ? t("processing") : submitLabel}
       </button>
     </form>
   );
