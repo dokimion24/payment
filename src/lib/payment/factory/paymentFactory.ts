@@ -10,13 +10,10 @@
 // - 기타: PayPal
 // ============================================================
 
-import {
-  TossPaymentAdapter,
-  PayPalPaymentAdapter,
-} from '../adapters';
-import type { IPaymentAdapter } from '../adapters';
-import { PaymentProviderType } from '../types';
-import type { CountryCode } from '../types';
+import { TossPaymentAdapter, PayPalPaymentAdapter } from "../adapters";
+import type { IPaymentAdapter } from "../adapters";
+import { PaymentProviderType } from "../types";
+import type { CountryCode } from "../types";
 
 // ------------------------------------------------------------
 // 1. 국가 → PG사 매핑 테이블
@@ -55,16 +52,23 @@ interface PaymentFactoryOptions {
 }
 
 export class PaymentFactoryImpl {
-  private readonly countryProviderMap: Record<CountryCode, PaymentProviderType[]>;
+  private readonly countryProviderMap: Record<
+    CountryCode,
+    PaymentProviderType[]
+  >;
   private readonly defaultProviders: PaymentProviderType[];
   private readonly adapterRegistry: Record<
     PaymentProviderType,
     new () => IPaymentAdapter
   >;
-  private readonly adapterCache = new Map<PaymentProviderType, IPaymentAdapter>();
+  private readonly adapterCache = new Map<
+    PaymentProviderType,
+    IPaymentAdapter
+  >();
 
   constructor(options?: PaymentFactoryOptions) {
-    this.countryProviderMap = options?.countryProviderMap ?? COUNTRY_PROVIDER_MAP;
+    this.countryProviderMap =
+      options?.countryProviderMap ?? COUNTRY_PROVIDER_MAP;
     this.defaultProviders = options?.defaultProviders ?? DEFAULT_PROVIDERS;
     this.adapterRegistry = options?.adapterRegistry ?? DEFAULT_ADAPTER_REGISTRY;
   }
@@ -88,5 +92,4 @@ export class PaymentFactoryImpl {
   }
 }
 
-// 기존 API 유지 — 싱글턴 인스턴스
 export const PaymentFactory = new PaymentFactoryImpl();

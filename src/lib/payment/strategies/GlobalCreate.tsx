@@ -1,95 +1,63 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import {
-  PaymentFormFields,
+  CustomerFields,
+  OrderSummary,
   PaymentFormLayout,
   ValidationErrors,
 } from "../components/PaymentForm";
-import { PaymentFactory } from "../factory";
 import { GlobalPurchaseSchema } from "../schemas";
+import { useCreateOrder } from "../hooks/useCreateOrder";
 
 export default function GlobalCreate() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations();
 
   const amount = Number(searchParams.get("amount")) || 0;
   const orderName = searchParams.get("orderName") || "";
   const currency = (searchParams.get("currency") as "USD" | "EUR") || "USD";
+  const country = searchParams.get("country") || "US";
 
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
+  const { submit, isSubmitting, error: submitError } = useCreateOrder({
+    provider: "PAYPAL",
+    fallbackError: t("paymentCreateGlobal.orderCreateError"),
+  });
+
   const currencySymbol = currency === "USD" ? "$" : "\u20AC";
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setValidationErrors([]);
 
-    const formData = {
+    const parsed = GlobalPurchaseSchema.safeParse({
       paymentMethod: "PAYPAL" as const,
       customerName,
       customerEmail,
       amount,
       currency,
-    };
-
-    const parsed = GlobalPurchaseSchema.safeParse(formData);
+    });
     if (!parsed.success) {
       setValidationErrors(parsed.error.issues.map((issue) => t(issue.message)));
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const country = searchParams.get("country") || "US";
-
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount,
-          currency,
-          orderName,
-          customerName,
-          customerEmail,
-          country,
-          businessType: "NONE",
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        setValidationErrors([err.message || t("paymentCreateGlobal.orderCreateFailed")]);
-        return;
-      }
-
-      const { orderId } = await res.json();
-
-      const adapter = PaymentFactory.getAdapter("PAYPAL");
-      const checkoutUrl = adapter.getCheckoutUrl({
-        orderId,
-        amount,
-        currency,
-        orderName,
-        customerName,
-      });
-
-      if (checkoutUrl) {
-        router.push(checkoutUrl);
-      }
-    } catch {
-      setValidationErrors([t("paymentCreateGlobal.orderCreateError")]);
-    } finally {
-      setIsSubmitting(false);
-    }
+    await submit({
+      amount,
+      currency,
+      orderName,
+      customerName,
+      customerEmail,
+      country,
+      businessType: "NONE",
+    });
   };
 
   return (
@@ -101,33 +69,22 @@ export default function GlobalCreate() {
     >
       <h2 className="text-xl font-bold">{t("paymentCreateGlobal.title")}</h2>
 
-      {/* 주문 요약 */}
-      <div className="bg-gray-50 rounded-lg p-3 text-sm">
-        <div className="flex justify-between">
-          <span className="text-gray-500">{t("paymentCreateGlobal.product")}</span>
-          <span>{orderName}</span>
-        </div>
-        <div className="flex justify-between mt-1">
-          <span className="text-gray-500">{t("paymentCreateGlobal.amount")}</span>
-          <span className="font-bold">{currencySymbol}{amount.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between mt-1">
-          <span className="text-gray-500">{t("paymentCreateGlobal.currency")}</span>
-          <span>{currency}</span>
-        </div>
-      </div>
+      <OrderSummary
+        rows={[
+          { label: t("paymentCreateGlobal.product"), value: orderName },
+          { label: t("paymentCreateGlobal.amount"), value: `${currencySymbol}${amount.toFixed(2)}`, bold: true },
+          { label: t("paymentCreateGlobal.currency"), value: currency },
+        ]}
+      />
 
-      {/* 고객 정보 입력 */}
-      <PaymentFormFields
+      <CustomerFields
         customerName={customerName}
         onCustomerNameChange={setCustomerName}
         customerEmail={customerEmail}
         onCustomerEmailChange={setCustomerEmail}
-        amount={amount}
-        onAmountChange={() => {}}
       />
 
-      <ValidationErrors errors={validationErrors} />
+      <ValidationErrors errors={submitError ? [...validationErrors, submitError] : validationErrors} />
     </PaymentFormLayout>
   );
 }

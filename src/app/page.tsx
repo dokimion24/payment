@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import type { CountryCode } from "@/lib/payment/types";
 import { PRODUCTS } from "@/lib/products";
+import { I18nProvider, type Locale } from "@/lib/i18n";
 import { useCart } from "@/lib/hooks/useCart";
-import { I18nProvider } from "@/lib/i18n";
 
 const COUNTRY_OPTIONS: { code: CountryCode; label: string; flag: string }[] = [
   { code: "KR", label: "한국", flag: "🇰🇷" },
@@ -15,9 +15,15 @@ const COUNTRY_OPTIONS: { code: CountryCode; label: string; flag: string }[] = [
   { code: "FR", label: "FR", flag: "🇫🇷" },
 ];
 
-function HomeContent({ country }: { country: CountryCode }) {
+interface HomeContentProps {
+  country: CountryCode;
+  onCountryChange: (code: CountryCode) => void;
+}
+
+function HomeContent({ country, onCountryChange }: HomeContentProps) {
   const router = useRouter();
   const t = useTranslations();
+  const locale = useLocale() as Locale;
   const {
     cartItems,
     cartCount,
@@ -30,16 +36,14 @@ function HomeContent({ country }: { country: CountryCode }) {
     formatTotal,
   } = useCart(country);
 
-  const isKr = country === "KR";
-
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
 
     const orderName =
       cartItems.length === 1
-        ? t("home.orderNameSingle", { name: isKr ? cartItems[0].name : cartItems[0].nameEn })
+        ? t("home.orderNameSingle", { name: cartItems[0].name[locale] })
         : t("home.orderNameMultiple", {
-            name: isKr ? cartItems[0].name : cartItems[0].nameEn,
+            name: cartItems[0].name[locale],
             rest: cartItems.length - 1,
           });
 
@@ -55,7 +59,6 @@ function HomeContent({ country }: { country: CountryCode }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <h1 className="text-lg font-bold tracking-tight">SHOP</h1>
@@ -86,7 +89,19 @@ function HomeContent({ country }: { country: CountryCode }) {
               </svg>
             </button>
             <div className="flex gap-1">
-              {/* Country selector is rendered by parent */}
+              {COUNTRY_OPTIONS.map(({ code, label, flag }) => (
+                <button
+                  key={code}
+                  onClick={() => onCountryChange(code)}
+                  className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                    country === code
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-500 hover:bg-gray-100"
+                  }`}
+                >
+                  {flag} {label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -104,7 +119,7 @@ function HomeContent({ country }: { country: CountryCode }) {
                 <div className="aspect-square bg-gray-100 relative overflow-hidden">
                   <img
                     src={product.image}
-                    alt={isKr ? product.name : product.nameEn}
+                    alt={product.name[locale]}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   {product.tag && (
@@ -115,7 +130,7 @@ function HomeContent({ country }: { country: CountryCode }) {
                 </div>
                 <div className="p-3">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {isKr ? product.name : product.nameEn}
+                    {product.name[locale]}
                   </p>
                   <p className="text-sm font-bold mt-1">
                     {formatPrice(product)}
@@ -153,7 +168,6 @@ function HomeContent({ country }: { country: CountryCode }) {
         </div>
       </div>
 
-      {/* 하단 장바구니 바 */}
       {cartCount > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -181,27 +195,7 @@ export default function Home() {
 
   return (
     <I18nProvider country={country}>
-      <div className="relative">
-        {/* Country selector outside of translated content */}
-        <div className="fixed top-0 right-0 z-20 pr-4 pt-3">
-          <div className="flex gap-1">
-            {COUNTRY_OPTIONS.map(({ code, label, flag }) => (
-              <button
-                key={code}
-                onClick={() => setCountry(code)}
-                className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                  country === code
-                    ? "bg-gray-900 text-white"
-                    : "text-gray-500 hover:bg-gray-100"
-                }`}
-              >
-                {flag} {label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <HomeContent country={country} />
-      </div>
+      <HomeContent country={country} onCountryChange={setCountry} />
     </I18nProvider>
   );
 }

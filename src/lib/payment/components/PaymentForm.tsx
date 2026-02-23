@@ -3,73 +3,61 @@
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
-interface PaymentFormFieldsProps {
+interface CustomerFieldsProps {
   customerName: string;
   onCustomerNameChange: (value: string) => void;
   customerEmail: string;
   onCustomerEmailChange: (value: string) => void;
-  amount: number;
-  onAmountChange: (value: number) => void;
-  /** 필드 라벨 — 국가별 다르게 전달 */
-  nameLabel?: string;
-  emailLabel?: string;
-  amountLabel?: string;
-  /** 필드 placeholder — 국가별 다르게 전달 */
-  namePlaceholder?: string;
-  emailPlaceholder?: string;
-  amountPlaceholder?: string;
 }
 
-/** 이름 + 이메일 + 금액 공통 필드 */
-export function PaymentFormFields({
+export function CustomerFields({
   customerName,
   onCustomerNameChange,
   customerEmail,
   onCustomerEmailChange,
-  amount,
-  onAmountChange,
-  nameLabel = "Name",
-  emailLabel = "Email",
-  amountLabel = "Amount",
-  namePlaceholder = "John Doe",
-  emailPlaceholder = "email@example.com",
-  amountPlaceholder = "100",
-}: PaymentFormFieldsProps) {
+}: CustomerFieldsProps) {
+  const t = useTranslations("paymentCreate");
+
   return (
     <>
       <div>
-        <label className="block text-sm font-medium mb-1">{nameLabel}</label>
+        <label className="block text-sm font-medium mb-1">{t("nameLabel")}</label>
         <input
           type="text"
           value={customerName}
           onChange={(e) => onCustomerNameChange(e.target.value)}
           className="w-full border rounded p-2"
-          placeholder={namePlaceholder}
+          placeholder={t("namePlaceholder")}
         />
       </div>
-
       <div>
-        <label className="block text-sm font-medium mb-1">{emailLabel}</label>
+        <label className="block text-sm font-medium mb-1">{t("emailLabel")}</label>
         <input
           type="email"
           value={customerEmail}
           onChange={(e) => onCustomerEmailChange(e.target.value)}
           className="w-full border rounded p-2"
-          placeholder={emailPlaceholder}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">{amountLabel}</label>
-        <input
-          type="number"
-          value={amount}
-          onChange={(e) => onAmountChange(Number(e.target.value))}
-          className="w-full border rounded p-2"
-          placeholder={amountPlaceholder}
+          placeholder="email@example.com"
         />
       </div>
     </>
+  );
+}
+
+interface OrderSummaryProps {
+  rows: { label: string; value: string; bold?: boolean }[];
+}
+
+export function OrderSummary({ rows }: OrderSummaryProps) {
+  return (
+    <div className="bg-gray-50 rounded-lg p-3 text-sm">
+      {rows.map(({ label, value, bold }, i) => (
+        <div key={i} className={`flex justify-between${i > 0 ? " mt-1" : ""}`}>
+          <span className="text-gray-500">{label}</span>
+          <span className={bold ? "font-bold" : ""}>{value}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -77,7 +65,6 @@ interface ValidationErrorsProps {
   errors: string[];
 }
 
-/** 검증 에러 표시 영역 */
 export function ValidationErrors({ errors }: ValidationErrorsProps) {
   if (errors.length === 0) return null;
 
@@ -92,23 +79,8 @@ export function ValidationErrors({ errors }: ValidationErrorsProps) {
   );
 }
 
-interface PaymentErrorProps {
-  error: string | null;
-}
-
-/** 결제 처리 에러 표시 */
-export function PaymentError({ error }: PaymentErrorProps) {
-  if (!error) return null;
-
-  return (
-    <div className="bg-red-50 border border-red-200 rounded p-3">
-      <p className="text-red-600 text-sm">{error}</p>
-    </div>
-  );
-}
-
 interface PaymentFormLayoutProps {
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.SyntheticEvent<HTMLFormElement>) => void;
   children: ReactNode;
   submitLabel: string;
   isLoading?: boolean;
@@ -116,7 +88,6 @@ interface PaymentFormLayoutProps {
   buttonClassName?: string;
 }
 
-/** 폼 레이아웃 + 제출 버튼 */
 export function PaymentFormLayout({
   onSubmit,
   children,

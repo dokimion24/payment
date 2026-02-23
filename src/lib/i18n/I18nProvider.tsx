@@ -20,7 +20,7 @@ export function I18nProvider({ country, children }: I18nProviderProps) {
   const locale = getLocaleFromCountry(country);
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages[locale]}>
+    <NextIntlClientProvider locale={locale} messages={messages[locale]} timeZone="Asia/Seoul">
       {children}
     </NextIntlClientProvider>
   );
