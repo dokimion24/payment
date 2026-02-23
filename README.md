@@ -6,6 +6,6 @@
 비즈니스 규칙
 | 국가 | 사업자 유형 | 결제수단 |
 |------|------------|---------|
-| KR | INDIVIDUAL / CORPORATE | Toss, 무통장입금 |
-| KR | NONE | Toss |
-| FR, US, 기타 | 전체 | PayPal |
+| KR | 개인/법인 사업자 | Toss, 무통장입금 |
+| KR | 일반 개인 | Toss |
+| FR, US | 사업자 유형 무관 | PayPal |
