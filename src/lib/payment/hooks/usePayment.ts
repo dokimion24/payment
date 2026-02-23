@@ -14,7 +14,7 @@ import { useCallback, useState } from 'react';
 import { PaymentFactory } from '../factory';
 import type { IPaymentAdapter } from '../adapters';
 import type {
-  PaymentContext,
+  CountryCode,
   PaymentProviderType,
   PaymentRequestParams,
   PaymentResult,
@@ -22,12 +22,12 @@ import type {
 
 interface UsePaymentReturn {
   /** 사용 가능한 결제 수단 조회 */
-  getAvailableProviders: (context: PaymentContext) => PaymentProviderType[];
+  getAvailableProviders: (country: CountryCode) => PaymentProviderType[];
   /** PG 타입에 맞는 어댑터 인스턴스 반환 */
   getAdapter: (providerType: PaymentProviderType) => IPaymentAdapter;
   /** 결제 요청 */
   requestPayment: (
-    context: PaymentContext,
+    country: CountryCode,
     providerType: PaymentProviderType,
     params: PaymentRequestParams,
   ) => Promise<PaymentResult>;
@@ -44,8 +44,8 @@ export function usePayment(): UsePaymentReturn {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PaymentResult | null>(null);
 
-  const getAvailableProviders = useCallback((context: PaymentContext) => {
-    return PaymentFactory.getAvailableProviders(context);
+  const getAvailableProviders = useCallback((country: CountryCode) => {
+    return PaymentFactory.getAvailableProviders(country);
   }, []);
 
   const getAdapter = useCallback((providerType: PaymentProviderType) => {
@@ -54,7 +54,7 @@ export function usePayment(): UsePaymentReturn {
 
   const requestPayment = useCallback(
     async (
-      context: PaymentContext,
+      country: CountryCode,
       providerType: PaymentProviderType,
       params: PaymentRequestParams,
     ): Promise<PaymentResult> => {
@@ -63,7 +63,7 @@ export function usePayment(): UsePaymentReturn {
 
       try {
         // 1. Factory에서 비즈니스 규칙 검증
-        const allowed = PaymentFactory.getAvailableProviders(context);
+        const allowed = PaymentFactory.getAvailableProviders(country);
         if (!allowed.includes(providerType)) {
           throw new Error(
             `현재 컨텍스트에서 지원하지 않는 결제 수단입니다: ${providerType}`,

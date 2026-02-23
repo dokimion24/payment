@@ -12,3 +12,4 @@ export {
   type TossConfirmBody,
   type PayPalVerifyBody,
 } from './api';
+export { CreateOrderBodySchema, type CreateOrderBody } from './order';

@@ -14,7 +14,7 @@ export function ValidationErrorPage({
   description,
   errors,
   backLabel,
-}: ValidationErrorPageProps) {
+}: ValidationErrorPageProps) { 
   const router = useRouter();
 
   return (

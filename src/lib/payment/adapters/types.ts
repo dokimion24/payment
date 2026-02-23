@@ -9,6 +9,7 @@ import type { PaymentRequestParams, PaymentResult } from '../types';
 
 /** checkout 페이지로 라우팅하기 위한 파라미터 */
 export interface CheckoutUrlParams {
+  orderId: string;
   amount: number;
   currency: string;
   orderName: string;

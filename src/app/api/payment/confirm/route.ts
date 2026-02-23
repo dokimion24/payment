@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { TossConfirmBodySchema } from "@/lib/payment/schemas";
+import { getOrder, updateOrderStatus } from "@/lib/payment/orders/store";
 
 const secretKey = process.env.TOSS_SECRET_KEY!;
 
@@ -17,22 +18,26 @@ export async function POST(request: Request) {
 
   const { paymentKey, orderId, amount } = parsed.data;
 
-  // ────────────────────────────────────────────────────────
-  // 금액 검증 가이드
-  // ────────────────────────────────────────────────────────
-  // 클라이언트가 보낸 amount를 그대로 승인하면 금액 변조 공격에 취약합니다.
-  // 반드시 서버에 저장된 주문 금액과 대조해야 합니다.
-  //
-  // 구현 예시:
-  //   const order = await db.order.findUnique({ where: { id: orderId } });
-  //   if (!order) return NextResponse.json({ message: "주문을 찾을 수 없습니다." }, { status: 404 });
-  //   if (order.amount !== amount) return NextResponse.json({ message: "금액 불일치" }, { status: 400 });
-  //
-  // 추가 고려사항:
-  // - 이미 승인된 주문인지 중복 검사 (idempotency)
-  // - 주문 상태가 '결제 대기' 인지 확인
-  // - race condition 방지를 위한 DB 트랜잭션 사용
-  // ────────────────────────────────────────────────────────
+  // 주문 조회 및 금액 검증
+  const order = getOrder(orderId);
+  if (!order) {
+    return NextResponse.json(
+      { message: "주문을 찾을 수 없습니다." },
+      { status: 404 },
+    );
+  }
+  if (order.status !== "PENDING") {
+    return NextResponse.json(
+      { message: "이미 처리된 주문입니다." },
+      { status: 400 },
+    );
+  }
+  if (order.amount !== amount) {
+    return NextResponse.json(
+      { message: "금액이 일치하지 않습니다." },
+      { status: 400 },
+    );
+  }
 
   try {
     // 토스페이먼츠 결제 승인 API 호출
@@ -57,7 +62,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // 승인 성공 — 필요한 정보만 클라이언트에 반환
+    // 승인 성공 — 주문 상태 업데이트
+    updateOrderStatus(orderId, "PAID");
+
     return NextResponse.json({
       orderId: data.orderId,
       totalAmount: data.totalAmount,

@@ -12,6 +12,7 @@ export class PayPalPaymentAdapter implements IPaymentAdapter {
 
   getCheckoutUrl(params: CheckoutUrlParams): string {
     const query = new URLSearchParams({
+      orderId: params.orderId,
       amount: params.amount.toFixed(2),
       currency: params.currency,
       orderName: params.orderName,

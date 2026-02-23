@@ -6,7 +6,6 @@
 export const PaymentProviderType = {
   TOSS: 'TOSS',
   PAYPAL: 'PAYPAL',
-  GENERAL: 'GENERAL', // 무통장입금
 } as const;
 
 export type PaymentProviderType =
@@ -25,12 +24,6 @@ export interface PaymentRequestParams {
   currency: string;
   customerName: string;
   customerEmail: string;
-}
-
-/** 결제 컨텍스트 (Factory에서 사용) */
-export interface PaymentContext {
-  country: CountryCode;
-  businessType: BusinessType;
 }
 
 /** 결제 결과 */

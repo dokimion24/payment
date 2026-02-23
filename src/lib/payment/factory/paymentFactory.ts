@@ -1,47 +1,34 @@
 // ============================================================
 // Factory Pattern - 결제 팩토리
 // ============================================================
-// 비즈니스 규칙을 한 곳에 집중시키는 "자판기" 역할
-//
-// 핵심 역할:
-// 1. 국가/사업자 유형에 따른 결제 수단 제한 규칙 관리
-// 2. 적절한 PG 어댑터 인스턴스 반환 (캐싱)
+// 국가 → PG사 매핑만 담당하는 단순한 팩토리
 //
 // 비즈니스 규칙:
-// - 한국(KR): 기본 Toss만 가능, 사업자(INDIVIDUAL/CORPORATE)는 Toss + 무통장입금
-// - 프랑스(FR): PayPal만 가능
-// - 미국(US): PayPal만 가능
-// - 기타: PayPal만 가능
+// - 한국(KR): Toss
+// - 프랑스(FR): PayPal
+// - 미국(US): PayPal
+// - 기타: PayPal
 // ============================================================
 
 import {
   TossPaymentAdapter,
   PayPalPaymentAdapter,
-  GeneralPaymentAdapter,
 } from '../adapters';
 import type { IPaymentAdapter } from '../adapters';
 import { PaymentProviderType } from '../types';
-import type { PaymentContext, CountryCode, BusinessType } from '../types';
+import type { CountryCode } from '../types';
 
 // ------------------------------------------------------------
-// 1. 데이터 기반 규칙 테이블
+// 1. 국가 → PG사 매핑 테이블
 // ------------------------------------------------------------
 
-interface ProviderRule {
-  country: CountryCode;
-  businessType: BusinessType | '*';
-  providers: PaymentProviderType[];
-}
+const { TOSS, PAYPAL } = PaymentProviderType;
 
-const { TOSS, PAYPAL, GENERAL } = PaymentProviderType;
-
-const DEFAULT_RULES: ProviderRule[] = [
-  { country: 'KR', businessType: 'INDIVIDUAL', providers: [TOSS, GENERAL] },
-  { country: 'KR', businessType: 'CORPORATE', providers: [TOSS, GENERAL] },
-  { country: 'KR', businessType: '*', providers: [TOSS] },
-  { country: 'FR', businessType: '*', providers: [PAYPAL] },
-  { country: 'US', businessType: '*', providers: [PAYPAL] },
-];
+const COUNTRY_PROVIDER_MAP: Record<CountryCode, PaymentProviderType[]> = {
+  KR: [TOSS],
+  FR: [PAYPAL],
+  US: [PAYPAL],
+};
 
 const DEFAULT_PROVIDERS: PaymentProviderType[] = [PAYPAL];
 
@@ -55,7 +42,6 @@ const DEFAULT_ADAPTER_REGISTRY: Record<
 > = {
   [TOSS]: TossPaymentAdapter,
   [PAYPAL]: PayPalPaymentAdapter,
-  [GENERAL]: GeneralPaymentAdapter,
 };
 
 // ------------------------------------------------------------
@@ -63,13 +49,13 @@ const DEFAULT_ADAPTER_REGISTRY: Record<
 // ------------------------------------------------------------
 
 interface PaymentFactoryOptions {
-  rules?: ProviderRule[];
+  countryProviderMap?: Record<CountryCode, PaymentProviderType[]>;
   defaultProviders?: PaymentProviderType[];
   adapterRegistry?: Record<PaymentProviderType, new () => IPaymentAdapter>;
 }
 
 export class PaymentFactoryImpl {
-  private readonly rules: ProviderRule[];
+  private readonly countryProviderMap: Record<CountryCode, PaymentProviderType[]>;
   private readonly defaultProviders: PaymentProviderType[];
   private readonly adapterRegistry: Record<
     PaymentProviderType,
@@ -78,21 +64,13 @@ export class PaymentFactoryImpl {
   private readonly adapterCache = new Map<PaymentProviderType, IPaymentAdapter>();
 
   constructor(options?: PaymentFactoryOptions) {
-    this.rules = options?.rules ?? DEFAULT_RULES;
+    this.countryProviderMap = options?.countryProviderMap ?? COUNTRY_PROVIDER_MAP;
     this.defaultProviders = options?.defaultProviders ?? DEFAULT_PROVIDERS;
     this.adapterRegistry = options?.adapterRegistry ?? DEFAULT_ADAPTER_REGISTRY;
   }
 
-  getAvailableProviders(context: PaymentContext): PaymentProviderType[] {
-    const { country, businessType } = context;
-
-    const matched = this.rules.find(
-      (rule) =>
-        rule.country === country &&
-        (rule.businessType === '*' || rule.businessType === businessType),
-    );
-
-    return matched ? matched.providers : this.defaultProviders;
+  getAvailableProviders(country: CountryCode): PaymentProviderType[] {
+    return this.countryProviderMap[country] ?? this.defaultProviders;
   }
 
   getAdapter(providerType: PaymentProviderType): IPaymentAdapter {

@@ -12,6 +12,7 @@ export class TossPaymentAdapter implements IPaymentAdapter {
 
   getCheckoutUrl(params: CheckoutUrlParams): string {
     const query = new URLSearchParams({
+      orderId: params.orderId,
       amount: String(params.amount),
       orderName: params.orderName,
       customerName: params.customerName ?? '',
