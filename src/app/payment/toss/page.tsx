@@ -29,32 +29,29 @@ function CheckoutContent() {
     customerEmail: searchParams.get("customerEmail"),
   });
 
-  const paymentWidgetRef = useRef<PaymentWidgetInstance | null>(null);
-  const [isReady, setIsReady] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [customerName, setCustomerName] = useState(
-    parsed.success ? parsed.data.customerName : "",
-  );
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [customerEmail, setCustomerEmail] = useState(
-    parsed.success ? parsed.data.customerEmail : "",
-  );
+  const data = parsed.success
+    ? parsed.data
+    : { orderId: "", amount: 0, orderName: "", customerName: "", customerEmail: "" };
 
-  const orderId = parsed.success ? parsed.data.orderId : "";
-  const amount = parsed.success ? parsed.data.amount : 0;
-  const orderName = parsed.success ? parsed.data.orderName : "";
+  const paymentWidgetRef = useRef<PaymentWidgetInstance | null>(null);
+  const [status, setStatus] = useState<"init" | "ready" | "paying">("init");
+  const [form, setForm] = useState({
+    name: data.customerName,
+    phone: "",
+    email: data.customerEmail,
+  });
 
   useEffect(() => {
     if (!parsed.success) return;
 
     (async () => {
       const paymentWidget = await loadPaymentWidget(clientKey, ANONYMOUS);
-      paymentWidget.renderPaymentMethods("#payment-methods", amount);
+      paymentWidget.renderPaymentMethods("#payment-methods", data.amount);
       paymentWidget.renderAgreement("#agreement");
       paymentWidgetRef.current = paymentWidget;
-      setIsReady(true);
+      setStatus("ready");
     })();
-  }, [amount, parsed.success]);
+  }, [data.amount, parsed.success]);
 
   if (!parsed.success) {
     return (
@@ -69,20 +66,20 @@ function CheckoutContent() {
 
   const handlePayment = async () => {
     const paymentWidget = paymentWidgetRef.current;
-    if (!paymentWidget || !customerName.trim()) return;
+    if (!paymentWidget || !form.name.trim()) return;
 
-    setIsLoading(true);
+    setStatus("paying");
     try {
       await paymentWidget.requestPayment({
-        orderId,
-        orderName,
-        customerName,
-        customerEmail: customerEmail || undefined,
+        orderId: data.orderId,
+        orderName: data.orderName,
+        customerName: form.name,
+        customerEmail: form.email || undefined,
         successUrl: `${window.location.origin}/payment/success`,
         failUrl: `${window.location.origin}/payment/fail`,
       });
     } catch {
-      setIsLoading(false);
+      setStatus("ready");
     }
   };
 
@@ -108,8 +105,8 @@ function CheckoutContent() {
         <div className="bg-white rounded-xl border p-5">
           <h2 className="font-bold text-sm mb-3">{t("checkout.orderProduct")}</h2>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-700">{orderName}</span>
-            <span className="text-sm font-bold">{amount.toLocaleString()}원</span>
+            <span className="text-sm text-gray-700">{data.orderName}</span>
+            <span className="text-sm font-bold">{data.amount.toLocaleString()}원</span>
           </div>
         </div>
 
@@ -121,8 +118,8 @@ function CheckoutContent() {
               <label className="block text-xs text-gray-500 mb-1">{t("checkout.nameLabel")}</label>
               <input
                 type="text"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder={t("checkout.namePlaceholder")}
               />
@@ -131,8 +128,8 @@ function CheckoutContent() {
               <label className="block text-xs text-gray-500 mb-1">{t("checkout.phoneLabel")}</label>
               <input
                 type="tel"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder={t("checkout.phonePlaceholder")}
               />
@@ -141,8 +138,8 @@ function CheckoutContent() {
               <label className="block text-xs text-gray-500 mb-1">{t("checkout.emailLabel")}</label>
               <input
                 type="email"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder={t("checkout.emailPlaceholder")}
               />
@@ -167,7 +164,7 @@ function CheckoutContent() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-gray-500">
               <span>{t("checkout.productAmount")}</span>
-              <span>{amount.toLocaleString()}원</span>
+              <span>{data.amount.toLocaleString()}원</span>
             </div>
             <div className="flex justify-between text-gray-500">
               <span>{t("checkout.shipping")}</span>
@@ -176,7 +173,7 @@ function CheckoutContent() {
             <div className="border-t pt-2 mt-2 flex justify-between">
               <span className="font-bold">{t("checkout.totalAmount")}</span>
               <span className="font-bold text-blue-600 text-lg">
-                {amount.toLocaleString()}원
+                {data.amount.toLocaleString()}원
               </span>
             </div>
           </div>
@@ -188,12 +185,12 @@ function CheckoutContent() {
         <div className="max-w-2xl mx-auto px-4 py-3">
           <button
             onClick={handlePayment}
-            disabled={!isReady || isLoading || !customerName.trim()}
+            disabled={status !== "ready" || !form.name.trim()}
             className="w-full bg-blue-600 text-white rounded-xl py-3.5 font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading
+            {status === "paying"
               ? t("common.processing")
-              : t("checkout.payButton", { amount: amount.toLocaleString() })}
+              : t("checkout.payButton", { amount: data.amount.toLocaleString() })}
           </button>
         </div>
       </div>

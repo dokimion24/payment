@@ -24,6 +24,7 @@ export interface PaymentRequestParams {
   currency: string;
   customerName: string;
   customerEmail: string;
+  [key: string]: unknown; // PG사별 추가 필드 (paymentKey 등)
 }
 
 /** 결제 결과 */

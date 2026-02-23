@@ -18,15 +18,48 @@ export class TossPaymentAdapter implements IPaymentAdapter {
       customerName: params.customerName ?? '',
       customerEmail: params.customerEmail ?? '',
     });
-    return `/payment/checkout?${query.toString()}`;
+    return `/payment/toss?${query.toString()}`;
   }
 
   async requestPayment(params: PaymentRequestParams): Promise<PaymentResult> {
-    // TODO: 공통 파라미터를 TossPaymentRequest 형식으로 변환 후 실제 Toss API 호출
-    // 현재는 시뮬레이션
+    const secretKey = process.env.TOSS_SECRET_KEY;
+    if (!secretKey) {
+      return {
+        success: false,
+        transactionId: '',
+        provider: 'TOSS',
+        message: 'TOSS_SECRET_KEY가 설정되지 않았습니다.',
+      };
+    }
+
+    const { paymentKey, orderId, amount } = params;
+
+    const response = await fetch(
+      'https://api.tosspayments.com/v1/payments/confirm',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${Buffer.from(secretKey + ':').toString('base64')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ paymentKey, orderId, amount }),
+      },
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        transactionId: '',
+        provider: 'TOSS',
+        message: data.message || '결제 승인에 실패했습니다.',
+      };
+    }
+
     return {
       success: true,
-      transactionId: `toss_${Date.now()}`,
+      transactionId: String(paymentKey),
       provider: 'TOSS',
       message: 'Toss 결제가 완료되었습니다.',
     };

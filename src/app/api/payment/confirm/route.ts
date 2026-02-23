@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 
 import { TossConfirmBodySchema } from "@/lib/payment/schemas";
 import { getOrder, updateOrderStatus } from "@/lib/payment/orders/store";
-
-const secretKey = process.env.TOSS_SECRET_KEY!;
+import { PaymentFactory } from "@/lib/payment/factory";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -40,25 +39,20 @@ export async function POST(request: Request) {
   }
 
   try {
-    // 토스페이먼츠 결제 승인 API 호출
-    const response = await fetch(
-      "https://api.tosspayments.com/v1/payments/confirm",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${Buffer.from(secretKey + ":").toString("base64")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ paymentKey, orderId, amount }),
-      },
-    );
+    const adapter = PaymentFactory.getAdapter("TOSS");
+    const result = await adapter.requestPayment({
+      paymentKey,
+      orderId,
+      amount,
+      currency: "KRW",
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+    });
 
-    const data = await response.json();
-
-    if (!response.ok) {
+    if (!result.success) {
       return NextResponse.json(
-        { message: data.message || "결제 승인에 실패했습니다.", code: data.code },
-        { status: response.status },
+        { message: result.message },
+        { status: 400 },
       );
     }
 
@@ -66,11 +60,10 @@ export async function POST(request: Request) {
     updateOrderStatus(orderId, "PAID");
 
     return NextResponse.json({
-      orderId: data.orderId,
-      totalAmount: data.totalAmount,
-      method: data.method,
-      status: data.status,
-      approvedAt: data.approvedAt,
+      orderId,
+      totalAmount: amount,
+      status: "DONE",
+      approvedAt: new Date().toISOString(),
     });
   } catch {
     return NextResponse.json(
